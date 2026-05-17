@@ -16,5 +16,5 @@ class CompraSerializer(serializers.ModelSerializer):
 class DividendoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dividendo
-        fields = ['id', 'activo', 'fecha_pago','cambio_nominal', 'impuesto']
+        fields = ['id', 'activo', 'fecha_pago', 'div_origen','cambio_nominal', 'impuesto']
         read_only_fields = ['id']
