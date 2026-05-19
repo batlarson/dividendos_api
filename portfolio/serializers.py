@@ -1,8 +1,11 @@
 from rest_framework import serializers
 from .models import Activo, Compra, Dividendo
-from django.db.models import Count, Sum, F
+from django.db.models import Count, Sum, F, Avg
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 
 class ActivoSerializer(serializers.ModelSerializer):
     precio_medio = serializers.SerializerMethodField()
@@ -35,6 +38,32 @@ class ActivoSerializer(serializers.ModelSerializer):
             return div_anual / obj.cantidad / precio_medio * 100
         return None
     
+    @action(detail=False, methods=['get'])
+    def resumen(self, request):
+        hace_un_año = timezone.now().date() - timedelta(days=365)
+        total_activos = self.get_queryset().count()
+        total_invertido = (Compra.objects.filter(
+            activo__usuario = request.user,
+        ).aggregate(
+            total_precio=Sum(F('precio')* F('cantidad'))
+        ))
+        dividendos_anuales = (Dividendo.objects.filter(
+            activo__usuario = request.user,
+            fecha_pago__gte = hace_un_año
+        ).aggregate(
+            total_div=Sum('div_origen')
+        ))
+        if dividendos_anuales['total_div'] and total_invertido['total_precio']:
+            yoc_global = dividendos_anuales['total_div'] / total_invertido['total_precio'] * 100
+        else:
+            yoc_global = None
+        return Response({
+            'total_activos': total_activos,
+            'total_invertido': total_invertido['total_precio'],
+            'dividendos_anuales': dividendos_anuales['total_div'],
+            'yoc_global': yoc_global
+        })
+    
 
     class Meta:
         model = Activo
@@ -52,3 +81,6 @@ class DividendoSerializer(serializers.ModelSerializer):
         model = Dividendo
         fields = ['id', 'activo', 'fecha_pago', 'div_origen','cambio_nominal', 'impuesto']
         read_only_fields = ['id']
+
+
+        
