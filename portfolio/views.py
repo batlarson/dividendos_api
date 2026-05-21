@@ -44,6 +44,22 @@ class ActivoViewSet(viewsets.ModelViewSet):
             'dividendos_anuales': dividendos_anuales['total_div'],
             'yoc_global': yoc_global
         })
+    
+    @action(detail=False, methods=['get'])
+    def no_divs(self,request):
+        hace_medio_año = timezone.now().date() - timedelta(days = 180)
+
+        con_dividendos = (Dividendo.objects.filter(
+            activo__usuario = request.user,
+            fecha_pago__gte = hace_medio_año,
+        ).values_list('activo_id', flat=True))
+
+        sin_dividendos = self.get_queryset().exclude(id__in=con_dividendos)
+        return Response([
+            {'ticker': activo.ticker, 'mensaje': 'Sin dividendos en 6 meses'}
+            for activo in sin_dividendos
+        ])
+
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer

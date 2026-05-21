@@ -36,6 +36,12 @@ class ActivoSerializer(serializers.ModelSerializer):
         if precio_medio and div_anual:
             return div_anual / obj.cantidad / precio_medio * 100
         return None
+    
+    def top_divs_activos(self,obj):
+        resultado = (Dividendo.objects.values('activo', 'activo__ticker').annotate(
+            total_div = Sum('div_origen')           
+        ).order_by('-total_div')[:3])
+        return resultado
         
     class Meta:
         model = Activo
