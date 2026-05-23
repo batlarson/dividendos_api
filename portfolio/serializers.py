@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Activo, Compra, Dividendo
 from django.db.models import Count, Sum, F, Avg
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.response import Response
@@ -28,7 +29,7 @@ class ActivoSerializer(serializers.ModelSerializer):
         if resultado['total_div']:
             return resultado['total_div']
         return None
-    
+
     def get_yoc(self, obj):
         precio_medio = self.get_precio_medio(obj)
         div_anual = self.get_div_anual(obj)
@@ -37,11 +38,28 @@ class ActivoSerializer(serializers.ModelSerializer):
             return div_anual / obj.cantidad / precio_medio * 100
         return None
     
-    def top_divs_activos(self,obj):
+    def top_divs_activos(self):
         resultado = (Dividendo.objects.values('activo', 'activo__ticker').annotate(
             total_div = Sum('div_origen')           
         ).order_by('-total_div')[:3])
         return resultado
+        
+    def full_divs_gt_100(self):
+        resultado = (Dividendo.objects
+            .values('activo__ticker')     
+            .annotate(total=Sum('div_origen')) 
+            .filter(total__gte=100)    
+            .order_by('-total'))
+        return resultado
+    
+    def mejor_mes_divs(self):
+        resultado = (Dividendo.objects
+            .annotate(month=TruncMonth('fecha_pago'))
+            .values('month')
+            .annotate(total = Sum('div_origen'))
+            .order_by('-total')[:1])
+        return resultado
+
         
     class Meta:
         model = Activo

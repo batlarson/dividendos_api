@@ -12,6 +12,36 @@ class ActivoTests(APITestCase):
             password='password123'
         )
         self.client.force_authenticate(user=self.user)
+        
+        self.activo = Activo.objects.create(
+            usuario=self.user,
+            nombre='Coca Cola',
+            ticker='KO',
+            precio=155,
+            cantidad=15
+        )
+        
+        self.compra1 = Compra.objects.create(
+            activo=self.activo,
+            fecha_compra='2026-05-22',
+            precio=100,
+            cantidad=10
+        )
+        
+        self.compra2 = Compra.objects.create(
+            activo=self.activo,
+            fecha_compra='2026-05-22',
+            precio=130,
+            cantidad=5
+        )
+
+        self.div = Dividendo.objects.create(
+            activo=self.activo,
+            fecha_pago='2026-04-22',
+            div_origen= 0.5,
+            cambio_nominal= 1.16,
+            impuesto= 15
+        )
     
     def test_crear_activo(self):
         url = reverse('activo-list')
@@ -26,44 +56,16 @@ class ActivoTests(APITestCase):
         response = self.client.post(url, data)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Activo.objects.count(), 1)
+        self.assertEqual(Activo.objects.count(), 2)
 
     def test_precio_medio_ponderado(self):
-        url_activo = reverse('activo-list')
-        url_compra = reverse('compra-list')    
-
-        data_activo = {
-            'nombre': 'Coca Cola',
-            'ticker': 'KO',
-            'precio': 155,
-            'cantidad': 2
-        }
-
-        response = self.client.post(url_activo, data_activo)
-        activo_id = response.data['id']
-        url_detalle = reverse('activo-detail', kwargs={'pk': activo_id})
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Activo.objects.count(), 1)
-
-        data_compra_1 = {
-            'activo': activo_id,
-            'fecha_compra': '2026-05-22',
-            'precio': 100,
-            'cantidad': 10
-        }
-
-        response = self.client.post(url_compra, data_compra_1)
-        self.assertEqual(Compra.objects.count(), 1)
-
-        data_compra_2 = {
-            'activo': activo_id,
-            'fecha_compra': '2026-05-22',
-            'precio': 130,
-            'cantidad': 5
-        }
-
-        response = self.client.post(url_compra, data_compra_2)      
-        self.assertEqual(Compra.objects.count(), 2)
+        url_detalle = reverse('activo-detail', kwargs={'pk': self.activo.id})
 
         response = self.client.get(url_detalle)
         self.assertEqual(float(response.data['precio_medio']), 110.0)
+
+    def test_yoc(self):
+        url_detalle = reverse('activo-detail', kwargs={'pk': self.activo.id})
+
+        response = self.client.get(url_detalle)
+        self.assertAlmostEqual(float(response.data['yoc']), 0.02987, places=3)
