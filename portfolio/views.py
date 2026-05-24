@@ -4,10 +4,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Sum, F, Avg
 from .models import Activo, Compra, Dividendo
 from .serializers import ActivoSerializer, DividendoSerializer, CompraSerializer
+import yfinance as yf
 
 class ActivoViewSet(viewsets.ModelViewSet):
     serializer_class = ActivoSerializer
@@ -60,6 +62,31 @@ class ActivoViewSet(viewsets.ModelViewSet):
             for activo in sin_dividendos
         ])
 
+    @action(detail=False, methods=['get'])
+    def top_divs_activos(self, request):
+        resultado = (Dividendo.objects.values('activo', 'activo__ticker').annotate(
+            total_div = Sum('div_origen')           
+        ).order_by('-total_div')[:3])
+        return Response(list(resultado))
+        
+    @action(detail=False, methods=['get'])    
+    def full_divs_gt(self, request):
+        umbral = request.query_params.get('umbral', 100)
+        resultado = (Dividendo.objects
+            .values('activo__ticker')     
+            .annotate(total=Sum('div_origen')) 
+            .filter(total__gte=umbral)    
+            .order_by('-total'))
+        return Response(list(resultado))
+
+    @action(detail=False, methods=['get']) 
+    def mejor_mes_divs(self, request):
+        resultado = (Dividendo.objects
+            .annotate(month=TruncMonth('fecha_pago'))
+            .values('month')
+            .annotate(total = Sum('div_origen'))
+            .order_by('-total')[:1])
+        return Response(list(resultado))
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer

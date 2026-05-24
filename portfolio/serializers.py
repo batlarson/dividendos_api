@@ -1,16 +1,21 @@
 from rest_framework import serializers
 from .models import Activo, Compra, Dividendo
 from django.db.models import Count, Sum, F, Avg
-from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.response import Response
+import yfinance as yf
 
 
 class ActivoSerializer(serializers.ModelSerializer):
     precio_medio = serializers.SerializerMethodField()
     div_anual = serializers.SerializerMethodField()
     yoc = serializers.SerializerMethodField()
+    precio = serializers.SerializerMethodField()
+
+    def get_precio(self, obj):
+        ticker = yf.Ticker(obj.ticker)
+        return ticker.info.get('currentPrice')
        
     def get_precio_medio(self, obj):
         resultado = (Compra.objects.filter(activo=obj).aggregate(
@@ -38,28 +43,6 @@ class ActivoSerializer(serializers.ModelSerializer):
             return div_anual / obj.cantidad / precio_medio * 100
         return None
     
-    def top_divs_activos(self):
-        resultado = (Dividendo.objects.values('activo', 'activo__ticker').annotate(
-            total_div = Sum('div_origen')           
-        ).order_by('-total_div')[:3])
-        return resultado
-        
-    def full_divs_gt_100(self):
-        resultado = (Dividendo.objects
-            .values('activo__ticker')     
-            .annotate(total=Sum('div_origen')) 
-            .filter(total__gte=100)    
-            .order_by('-total'))
-        return resultado
-    
-    def mejor_mes_divs(self):
-        resultado = (Dividendo.objects
-            .annotate(month=TruncMonth('fecha_pago'))
-            .values('month')
-            .annotate(total = Sum('div_origen'))
-            .order_by('-total')[:1])
-        return resultado
-
         
     class Meta:
         model = Activo
