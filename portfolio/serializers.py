@@ -12,10 +12,25 @@ class ActivoSerializer(serializers.ModelSerializer):
     div_anual = serializers.SerializerMethodField()
     yoc = serializers.SerializerMethodField()
     precio = serializers.SerializerMethodField()
+    dividend_yield = serializers.SerializerMethodField()
+    payout_ratio = serializers.SerializerMethodField()
+    per = serializers.SerializerMethodField()
 
     def get_precio(self, obj):
         ticker = yf.Ticker(obj.ticker)
         return ticker.info.get('currentPrice')
+    
+    def get_dividend_yield(self, obj):
+        ticker = yf.Ticker(obj.ticker)
+        return ticker.info.get('dividendYield')
+    
+    def get_payout_ratio(self, obj):
+        ticker = yf.Ticker(obj.ticker)
+        return ticker.info.get('payoutRatio')
+    
+    def get_per(self, obj):
+        ticker = yf.Ticker(obj.ticker)
+        return ticker.info.get('trailingPE')
        
     def get_precio_medio(self, obj):
         resultado = (Compra.objects.filter(activo=obj).aggregate(
@@ -46,7 +61,7 @@ class ActivoSerializer(serializers.ModelSerializer):
         
     class Meta:
         model = Activo
-        fields = ['id', 'usuario', 'precio', 'ticker', 'nombre', 'cantidad', 'precio_medio', 'div_anual', 'yoc']
+        fields = ['id', 'usuario', 'ticker', 'nombre', 'cantidad', 'precio', 'precio_medio', 'dividend_yield', 'div_anual', 'yoc', 'payout_ratio', 'per']
         read_only_fields = ['id', 'usuario']
 
 class CompraSerializer(serializers.ModelSerializer):
