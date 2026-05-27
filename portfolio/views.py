@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.response import Response
+from django.conf import settings
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import timedelta
@@ -104,5 +106,40 @@ class DividendoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Dividendo.objects.filter(activo__usuario=self.request.user)
 
+
+class CookieTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            access_token = response.data['access']
+            response.set_cookie(
+                key='access_token',
+                value=access_token,
+                httponly=True,      # JavaScript no puede leerla
+                secure=not settings.DEBUG,        # Solo HTTPS
+                samesite='Lax',     # Protección CSRF
+            )
+        return response
+    
+class CookieTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        # Lee el refresh token de la cookie y lo mete en el request
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token missing.'}, status=400)
+        request.data['refresh'] = refresh_token
+
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            response.set_cookie(
+                key='access_token',
+                value=response.data['access'],
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+            )
+        return response
 
 
