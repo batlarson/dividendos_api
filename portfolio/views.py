@@ -9,6 +9,7 @@ from datetime import timedelta
 from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Sum, F, Avg
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Activo, Compra, Dividendo
 from .serializers import ActivoSerializer, DividendoSerializer, CompraSerializer
 import yfinance as yf
@@ -16,9 +17,11 @@ import yfinance as yf
 class ActivoViewSet(viewsets.ModelViewSet):
     serializer_class = ActivoSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['ticker', 'nombre']
 
     def get_queryset(self):
-        return Activo.objects.filter(usuario=self.request.user)
+        return Activo.objects.filter(usuario=self.request.user).order_by('id')
 
     def perform_create(self, serializer):
         serializer.save(usuario=self.request.user)
