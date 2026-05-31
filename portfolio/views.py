@@ -10,6 +10,7 @@ from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Sum, F, Avg
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Activo, Compra, Dividendo
 from .serializers import ActivoSerializer, DividendoSerializer, CompraSerializer
 import yfinance as yf
@@ -17,8 +18,12 @@ import yfinance as yf
 class ActivoViewSet(viewsets.ModelViewSet):
     serializer_class = ActivoSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['ticker', 'nombre']
+    search_fields = ['nombre', 'ticker']
+    ##La diferencia con filterset_fields es que search hace búsqueda parcial con icontains — busca dentro del texto. filterset_fields busca coincidencia exacta.
+    ordering_fields = ['precio', 'ticker', 'cantidad', 'nombre', 'dividend_yield']
+    ordering = ['ticker']  # orden por defecto
 
     def get_queryset(self):
         return Activo.objects.filter(usuario=self.request.user).order_by('id')
