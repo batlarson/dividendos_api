@@ -5,6 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework.response import Response
 import yfinance as yf
+from django.core.cache import cache
 
 
 class ActivoSerializer(serializers.ModelSerializer):
@@ -17,20 +18,40 @@ class ActivoSerializer(serializers.ModelSerializer):
     per = serializers.SerializerMethodField()
 
     def get_precio(self, obj):
-        ticker = yf.Ticker(obj.ticker)
-        return ticker.info.get('currentPrice')
+        cache_key = f'precio_{obj.ticker}'
+        precio = cache.get(cache_key)
+        if precio is None:
+            ticker = yf.Ticker(obj.ticker)
+            precio = ticker.info.get('currentPrice')
+            cache.set(cache_key, precio, timeout=60)  # 1 minuto
+        return precio
     
     def get_dividend_yield(self, obj):
-        ticker = yf.Ticker(obj.ticker)
-        return ticker.info.get('dividendYield')
+        cache_key = f'yield_{obj.ticker}'
+        dividend_yield = cache.get(cache_key)
+        if dividend_yield is None:
+            ticker = yf.Ticker(obj.ticker)
+            dividend_yield = ticker.info.get('dividendYield')
+            cache.set(cache_key, dividend_yield, timeout=600)  # 10 minutos
+        return dividend_yield
     
     def get_payout_ratio(self, obj):
-        ticker = yf.Ticker(obj.ticker)
-        return ticker.info.get('payoutRatio')
+        cache_key = f'payout_ratio_{obj.ticker}'
+        payout_ratio = cache.get(cache_key)
+        if payout_ratio is None:
+            ticker = yf.Ticker(obj.ticker)
+            payout_ratio = ticker.info.get('payoutRatio')
+            cache.set(cache_key, payout_ratio, timeout=600)  # 10 minutos
+        return payout_ratio
     
     def get_per(self, obj):
-        ticker = yf.Ticker(obj.ticker)
-        return ticker.info.get('trailingPE')
+        cache_key = f'per_{obj.ticker}'
+        per = cache.get(cache_key)
+        if per is None:
+            ticker = yf.Ticker(obj.ticker)
+            per = ticker.info.get('trailingPE')
+            cache.set(cache_key, per, timeout=1200)  # 20 minutos
+        return per
        
     def get_precio_medio(self, obj):
         resultado = (Compra.objects.filter(activo=obj).aggregate(

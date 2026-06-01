@@ -143,3 +143,9 @@ SIMPLE_JWT = {
 
 LOGIN_REDIRECT_URL = '/api/activos/'
 LOGIN_URL = '/api-auth/login/'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
