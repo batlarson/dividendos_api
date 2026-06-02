@@ -9,4 +9,6 @@ router.register('activos', ActivoViewSet, basename='activo')
 router.register('compras', CompraViewSet, basename='compra')
 router.register('dividendos', DividendoViewSet, basename='dividendo')
 
-urlpatterns = router.urls
+urlpatterns = [
+    path('', include(router.urls)),
+]

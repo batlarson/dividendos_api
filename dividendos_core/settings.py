@@ -143,6 +143,7 @@ SIMPLE_JWT = {
 
 LOGIN_REDIRECT_URL = '/api/activos/'
 LOGIN_URL = '/api-auth/login/'
+LOGOUT_REDIRECT_URL = '/api-auth/login/'
 
 CACHES = {
     'default': {

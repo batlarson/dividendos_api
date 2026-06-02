@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
 from django.db.models import Count, Sum, F, Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -151,3 +152,9 @@ class CookieTokenRefreshView(TokenRefreshView):
         return response
 
 
+@api_view(['POST'])
+def logout_view(request):
+    response = Response({'message': 'Logout exitoso'})
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+    return response
