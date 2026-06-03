@@ -10,6 +10,7 @@ from django.core.cache import cache
 
 class ActivoSerializer(serializers.ModelSerializer):
     precio_medio = serializers.SerializerMethodField()
+    cantidad = serializers.SerializerMethodField()
     div_anual = serializers.SerializerMethodField()
     yoc = serializers.SerializerMethodField()
     precio = serializers.SerializerMethodField()
@@ -25,6 +26,12 @@ class ActivoSerializer(serializers.ModelSerializer):
             precio = ticker.info.get('currentPrice')
             cache.set(cache_key, precio, timeout=60)  # 1 minuto
         return precio
+    
+    def get_cantidad(self, obj):
+        resultado = Compra.objects.filter(activo=obj).aggregate(
+            total=Sum('cantidad')
+        )
+        return resultado['total'] or 0
     
     def get_dividend_yield(self, obj):
         cache_key = f'yield_{obj.ticker}'
@@ -74,16 +81,17 @@ class ActivoSerializer(serializers.ModelSerializer):
     def get_yoc(self, obj):
         precio_medio = self.get_precio_medio(obj)
         div_anual = self.get_div_anual(obj)
+        cantidad = self.get_cantidad(obj)
         
         if precio_medio and div_anual:
-            return div_anual / obj.cantidad / precio_medio * 100
+            return div_anual / cantidad / precio_medio * 100
         return None
     
         
     class Meta:
         model = Activo
         fields = ['id', 'usuario', 'ticker', 'nombre', 'cantidad', 'precio', 'precio_medio', 'dividend_yield', 'div_anual', 'yoc', 'payout_ratio', 'per']
-        read_only_fields = ['id', 'usuario']
+        read_only_fields = ['id', 'usuario', 'cantidad']
 
 class CompraSerializer(serializers.ModelSerializer):
     class Meta:
