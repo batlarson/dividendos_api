@@ -12,8 +12,8 @@ from rest_framework.decorators import api_view
 from django.db.models import Count, Sum, F, Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Activo, Compra, Dividendo
-from .serializers import ActivoSerializer, DividendoSerializer, CompraSerializer
+from .models import Activo, Compra, Dividendo, Historial
+from .serializers import ActivoSerializer, DividendoSerializer, CompraSerializer, HistorialSerializer
 import yfinance as yf
 
 class ActivoViewSet(viewsets.ModelViewSet):
@@ -114,6 +114,13 @@ class DividendoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Dividendo.objects.filter(activo__usuario=self.request.user)
+    
+class HistorialViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = HistorialSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Historial.objects.filter(activo__usuario=self.request.user).order_by('-fecha')
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):

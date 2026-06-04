@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Activo, Compra, Dividendo
+from .models import Activo, Compra, Dividendo, Historial
 from django.db.models import Count, Sum, F, Avg
 from django.utils import timezone
 from datetime import timedelta
@@ -96,7 +96,7 @@ class ActivoSerializer(serializers.ModelSerializer):
 class CompraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compra
-        fields = ['id', 'activo', 'fecha_compra', 'precio', 'cantidad']
+        fields = ['id', 'activo', 'fecha_compra', 'precio', 'cantidad', 'cambio_divisa']
         read_only_fields = ['id']
 
 class DividendoSerializer(serializers.ModelSerializer):
@@ -104,6 +104,12 @@ class DividendoSerializer(serializers.ModelSerializer):
         model = Dividendo
         fields = ['id', 'activo', 'fecha_pago', 'div_origen','cambio_nominal', 'impuesto']
         read_only_fields = ['id']
+
+class HistorialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Historial
+        fields = ['id', 'activo', 'mensaje', 'fecha']
+
 
 
         
