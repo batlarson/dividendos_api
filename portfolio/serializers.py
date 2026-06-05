@@ -23,8 +23,11 @@ class ActivoSerializer(serializers.ModelSerializer):
         precio = cache.get(cache_key)
         if precio is None:
             ticker = yf.Ticker(obj.ticker)
-            precio = ticker.info.get('currentPrice')
-            cache.set(cache_key, precio, timeout=60)  # 1 minuto
+            precio_usd = ticker.info.get('currentPrice')
+            eurusd = yf.Ticker("EURUSD=X")
+            tipo_cambio = eurusd.info.get('regularMarketPrice', 1)
+            precio = round(precio_usd / tipo_cambio, 2)
+            cache.set(cache_key, precio, timeout=60) # 1 minutillo
         return precio
     
     def get_cantidad(self, obj):
@@ -62,7 +65,7 @@ class ActivoSerializer(serializers.ModelSerializer):
        
     def get_precio_medio(self, obj):
         resultado = (Compra.objects.filter(activo=obj).aggregate(
-            total_valor=Sum(F('precio') * F('cantidad')),
+            total_valor=Sum(F('precio') * F('cantidad') * F('cambio_divisa')),
             total_cantidad=Sum(F('cantidad'))
             ))
         if resultado['total_cantidad']:
