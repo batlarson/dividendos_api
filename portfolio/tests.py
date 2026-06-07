@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Activo, Compra, Dividendo
+from .models import Activo, Compra, Dividendo, Historial
 
 class ActivoTests(APITestCase):
     def setUp(self):
@@ -17,8 +17,6 @@ class ActivoTests(APITestCase):
             usuario=self.user,
             nombre='Coca Cola',
             ticker='KO',
-            precio=155,
-            cantidad=15
         )
         
         self.compra1 = Compra.objects.create(
@@ -49,8 +47,6 @@ class ActivoTests(APITestCase):
         data = {
             'nombre': 'Coca Cola',
             'ticker': 'KO',
-            'precio': 155,
-            'cantidad': 2
         }
 
         response = self.client.post(url, data)
@@ -69,3 +65,6 @@ class ActivoTests(APITestCase):
 
         response = self.client.get(url_detalle)
         self.assertAlmostEqual(float(response.data['yoc']), 0.02987, places=3)
+    
+    def test_historial(self):
+        self.assertEqual(Historial.objects.count(), 1)
