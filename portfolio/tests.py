@@ -23,14 +23,16 @@ class ActivoTests(APITestCase):
             activo=self.activo,
             fecha_compra='2026-05-22',
             precio=100,
-            cantidad=10
+            cantidad=10,
+            cambio_divisa=1.2
         )
         
         self.compra2 = Compra.objects.create(
             activo=self.activo,
             fecha_compra='2026-05-22',
             precio=130,
-            cantidad=5
+            cantidad=5,
+            cambio_divisa=1.2
         )
 
         self.div = Dividendo.objects.create(
@@ -38,7 +40,7 @@ class ActivoTests(APITestCase):
             fecha_pago='2026-04-22',
             div_origen= 0.5,
             cambio_nominal= 1.16,
-            impuesto= 15
+            impuesto= 15,
         )
     
     def test_crear_activo(self):
@@ -58,13 +60,15 @@ class ActivoTests(APITestCase):
         url_detalle = reverse('activo-detail', kwargs={'pk': self.activo.id})
 
         response = self.client.get(url_detalle)
-        self.assertEqual(float(response.data['precio_medio']), 110.0)
+        self.assertEqual(float(response.data['precio_medio']), 132.0)
 
     def test_yoc(self):
         url_detalle = reverse('activo-detail', kwargs={'pk': self.activo.id})
 
         response = self.client.get(url_detalle)
-        self.assertAlmostEqual(float(response.data['yoc']), 0.02987, places=3)
+        self.assertAlmostEqual(float(response.data['yoc']), 0.0249, places=3)
     
     def test_historial(self):
         self.assertEqual(Historial.objects.count(), 1)
+
+
