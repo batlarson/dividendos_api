@@ -18,17 +18,25 @@ class ActivoSerializer(serializers.ModelSerializer):
     payout_ratio = serializers.SerializerMethodField()
     per = serializers.SerializerMethodField()
 
-    def get_precio(self, obj):
-        cache_key = f'precio_{obj.ticker}'
-        precio = cache.get(cache_key)
-        if precio is None:
+    def get_yahoo_data(self, obj):
+        cache_key = f'yahoo_{obj.ticker}'
+        data = cache.get(cache_key)
+        if data is None:
             ticker = yf.Ticker(obj.ticker)
-            precio_usd = ticker.info.get('currentPrice')
             eurusd = yf.Ticker("EURUSD=X")
             tipo_cambio = eurusd.info.get('regularMarketPrice', 1)
-            precio = round(precio_usd / tipo_cambio, 2)
-            cache.set(cache_key, precio, timeout=60) # 1 minutillo
-        return precio
+            info = ticker.info
+            data = {
+                'precio': round(info.get('currentPrice', 0) / tipo_cambio, 2),
+                'dividend_yield': info.get('dividendYield'),
+                'payout_ratio': info.get('payoutRatio'),
+                'per': info.get('trailingPE'),
+            }
+            cache.set(cache_key, data, timeout=60)
+        return data
+
+    def get_precio(self, obj):
+        return self.get_yahoo_data(obj)['precio']
     
     def get_cantidad(self, obj):
         resultado = Compra.objects.filter(activo=obj).aggregate(
@@ -37,31 +45,13 @@ class ActivoSerializer(serializers.ModelSerializer):
         return resultado['total'] or 0
     
     def get_dividend_yield(self, obj):
-        cache_key = f'yield_{obj.ticker}'
-        dividend_yield = cache.get(cache_key)
-        if dividend_yield is None:
-            ticker = yf.Ticker(obj.ticker)
-            dividend_yield = ticker.info.get('dividendYield')
-            cache.set(cache_key, dividend_yield, timeout=600)  # 10 minutos
-        return dividend_yield
+        return self.get_yahoo_data(obj)['dividend_yield']
     
     def get_payout_ratio(self, obj):
-        cache_key = f'payout_ratio_{obj.ticker}'
-        payout_ratio = cache.get(cache_key)
-        if payout_ratio is None:
-            ticker = yf.Ticker(obj.ticker)
-            payout_ratio = ticker.info.get('payoutRatio')
-            cache.set(cache_key, payout_ratio, timeout=600)  # 10 minutos
-        return payout_ratio
+        return self.get_yahoo_data(obj)['payout_ratio']
     
     def get_per(self, obj):
-        cache_key = f'per_{obj.ticker}'
-        per = cache.get(cache_key)
-        if per is None:
-            ticker = yf.Ticker(obj.ticker)
-            per = ticker.info.get('trailingPE')
-            cache.set(cache_key, per, timeout=1200)  # 20 minutos
-        return per
+        return self.get_yahoo_data(obj)['per']
        
     def get_precio_medio(self, obj):
         resultado = (Compra.objects.filter(activo=obj).aggregate(
