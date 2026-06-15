@@ -102,6 +102,10 @@ class ActivoViewSet(viewsets.ModelViewSet):
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['activo__ticker']
+    ordering_fields = ['fecha_compra', 'precio', 'cantidad']
+    ordering = ['-fecha_compra']
 
     def get_queryset(self):
         return Compra.objects.filter(activo__usuario=self.request.user)
@@ -111,6 +115,10 @@ class CompraViewSet(viewsets.ModelViewSet):
 class DividendoViewSet(viewsets.ModelViewSet):
     serializer_class = DividendoSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['activo__ticker']
+    ordering_fields = ['fecha_pago', 'div_origen']
+    ordering = ['-fecha_pago']
 
     def get_queryset(self):
         return Dividendo.objects.filter(activo__usuario=self.request.user)
