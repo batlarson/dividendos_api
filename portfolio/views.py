@@ -126,6 +126,8 @@ class DividendoViewSet(viewsets.ModelViewSet):
 class HistorialViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = HistorialSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter]
+    search_fields = ['activo__ticker']
 
     def get_queryset(self):
         return Historial.objects.filter(activo__usuario=self.request.user).order_by('-fecha')
