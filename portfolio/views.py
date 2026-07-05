@@ -108,7 +108,7 @@ class CompraViewSet(viewsets.ModelViewSet):
     ordering = ['-fecha_compra']
 
     def get_queryset(self):
-        return Compra.objects.filter(activo__usuario=self.request.user)
+        return Compra.objects.filter(activo__usuario=self.request.user).select_related('activo').order_by('-fecha_compra')
 
 
 
@@ -121,7 +121,7 @@ class DividendoViewSet(viewsets.ModelViewSet):
     ordering = ['-fecha_pago']
 
     def get_queryset(self):
-        return Dividendo.objects.filter(activo__usuario=self.request.user)
+        return Dividendo.objects.filter(activo__usuario=self.request.user).select_related('activo').order_by('-fecha_pago')
     
 class HistorialViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = HistorialSerializer
@@ -130,7 +130,7 @@ class HistorialViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['activo__ticker']
 
     def get_queryset(self):
-        return Historial.objects.filter(activo__usuario=self.request.user).order_by('-fecha')
+         return Historial.objects.filter(activo__usuario=self.request.user).select_related('activo').order_by('-fecha')
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):

@@ -87,21 +87,36 @@ class ActivoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'usuario', 'cantidad']
 
 class CompraSerializer(serializers.ModelSerializer):
+    activo_nombre = serializers.SerializerMethodField()
+    
+    def get_activo_nombre(self, obj):
+        return obj.activo.nombre
+    
     class Meta:
         model = Compra
-        fields = ['id', 'activo', 'fecha_compra', 'precio', 'cantidad', 'cambio_divisa']
+        fields = ['id', 'activo', 'fecha_compra', 'precio', 'cantidad', 'cambio_divisa','activo_nombre']
         read_only_fields = ['id']
 
 class DividendoSerializer(serializers.ModelSerializer):
+    activo_nombre = serializers.SerializerMethodField()
+    
+    def get_activo_nombre(self, obj):
+        return obj.activo.nombre
+
     class Meta:
         model = Dividendo
-        fields = ['id', 'activo', 'fecha_pago', 'div_origen','cambio_nominal', 'impuesto']
+        fields = ['id', 'activo', 'fecha_pago', 'div_origen','cambio_nominal', 'impuesto', 'activo_nombre']
         read_only_fields = ['id']
 
 class HistorialSerializer(serializers.ModelSerializer):
+    activo_nombre = serializers.SerializerMethodField()
+    
+    def get_activo_nombre(self, obj):
+        return obj.activo.nombre
+
     class Meta:
         model = Historial
-        fields = ['id', 'activo', 'mensaje', 'fecha']
+        fields = ['id', 'activo', 'mensaje', 'fecha', 'activo_nombre']
 
 
 
