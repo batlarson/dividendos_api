@@ -30,7 +30,7 @@ class Dividendo(models.Model):
         return f"{self.activo} | {self.fecha_pago} | {self.importe_neto()}€"
     
     def importe_neto(self):
-        return self.div_origen * self.cambio_nominal * (1 - self.impuesto / 100)
+        return round(self.div_origen * self.cambio_nominal * (1 - self.impuesto / 100),4)
     
 class Historial(models.Model):
     activo = models.ForeignKey(Activo, on_delete=models.CASCADE)
