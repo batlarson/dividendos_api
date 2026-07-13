@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
-from django.db.models import Count, Sum, F, Avg
+from django.db.models import Count, Sum, F, Avg, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Activo, Compra, Dividendo, Historial
@@ -98,6 +98,30 @@ class ActivoViewSet(viewsets.ModelViewSet):
             .annotate(total = Sum('div_origen'))
             .order_by('-total')[:1])
         return Response(list(resultado))
+    
+    @action(detail=False, methods=['get'])
+    def a_revisar(self, request):
+        hace_medio_año = timezone.now().date() - timedelta(days=180)
+        
+        con_dividendos = Dividendo.objects.filter(
+            activo__usuario=request.user,
+            fecha_pago__gte=hace_medio_año
+        ).values_list('activo_id', flat=True)
+        
+        pocas_compras = Compra.objects.filter(
+            activo__usuario=request.user
+        ).values('activo_id').annotate(
+            total=Count('id')
+        ).filter(total__lte=1).values_list('activo_id', flat=True)
+        
+        resultado = self.get_queryset().filter(
+            Q(id__in=pocas_compras) | ~Q(id__in=con_dividendos)
+        )
+        
+        return Response([
+            {'ticker': a.ticker, 'nombre': a.nombre}
+            for a in resultado
+        ])
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
