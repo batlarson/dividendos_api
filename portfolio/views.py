@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
-from django.db.models import Count, Sum, F, Avg, Q
+from django.db.models import Count, Sum, F, Avg, Q, Case, When, Value, CharField
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Activo, Compra, Dividendo, Historial
@@ -122,6 +122,26 @@ class ActivoViewSet(viewsets.ModelViewSet):
             {'ticker': a.ticker, 'nombre': a.nombre}
             for a in resultado
         ])
+    
+    @action(detail=False, methods=['get'])
+    def clasificar_dividendos(self, request):
+        hace_un_año = timezone.now().date() - timedelta(days=365)
+        
+        resultado = self.get_queryset().annotate(
+            total_divs=Sum('dividendo__div_origen', filter=Q(dividendo__fecha_pago__gte=hace_un_año)),
+            clasificacion=Case(
+                When(total_divs__gte=100, then=Value('Excelente')),
+                When(total_divs__gte=50, then=Value('Bueno')),
+                When(total_divs__gt=0, then=Value('Bajo')),
+                default=Value('Sin dividendos'),
+                output_field=CharField()
+            )
+        ).values('ticker', 'nombre', 'total_divs', 'clasificacion')
+        
+        return Response(list(resultado))
+        
+        
+
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
