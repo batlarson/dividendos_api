@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
+from .permissions import EsDuenoDelActivo
 from rest_framework.decorators import api_view
 from django.db.models import Count, Sum, F, Avg, Q, Case, When, Value, CharField
 from django_filters.rest_framework import DjangoFilterBackend
@@ -18,7 +19,7 @@ import yfinance as yf
 
 class ActivoViewSet(viewsets.ModelViewSet):
     serializer_class = ActivoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsDuenoDelActivo]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['ticker', 'nombre']
     search_fields = ['nombre', 'ticker']
