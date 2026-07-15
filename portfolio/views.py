@@ -10,7 +10,7 @@ from django.db.models.functions import TruncMonth
 from rest_framework.permissions import IsAuthenticated
 from .permissions import EsDuenoDelActivo
 from rest_framework.decorators import api_view
-from django.db.models import Count, Sum, F, Avg, Q, Case, When, Value, CharField
+from django.db.models import Count, Sum, F, Avg, Q, Case, When, Value, CharField, Subquery, OuterRef
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Activo, Compra, Dividendo, Historial
@@ -140,7 +140,24 @@ class ActivoViewSet(viewsets.ModelViewSet):
         ).values('ticker', 'nombre', 'total_divs', 'clasificacion')
         
         return Response(list(resultado))
-        
+    
+
+    @action(detail=False, methods=['get'])
+    def ultimo_div_activo(self, request):
+        ultimo_div = Dividendo.objects.filter(
+            activo=OuterRef('pk')
+        ).order_by('-fecha_pago').values('div_origen')[:1]
+
+        ultima_fecha = Dividendo.objects.filter(
+            activo=OuterRef('pk')
+        ).order_by('-fecha_pago').values('fecha_pago')[:1]
+
+        resultado = self.get_queryset().annotate(
+            ultimo_div=Subquery(ultimo_div),
+            ultima_fecha=Subquery(ultima_fecha)
+        ).values('ticker', 'nombre', 'ultimo_div', 'ultima_fecha')
+
+        return Response(list(resultado))        
         
 
 
