@@ -22,17 +22,25 @@ class ActivoSerializer(serializers.ModelSerializer):
         cache_key = f'yahoo_{obj.ticker}'
         data = cache.get(cache_key)
         if data is None:
-            ticker = yf.Ticker(obj.ticker)
-            eurusd = yf.Ticker("EURUSD=X")
-            tipo_cambio = eurusd.info.get('regularMarketPrice', 1)
-            info = ticker.info
-            data = {
-                'precio': round(info.get('currentPrice', 0) / tipo_cambio, 2),
-                'dividend_yield': info.get('dividendYield'),
-                'payout_ratio': info.get('payoutRatio'),
-                'per': info.get('trailingPE'),
-            }
-            cache.set(cache_key, data, timeout=60)
+            try:
+                ticker = yf.Ticker(obj.ticker)
+                eurusd = yf.Ticker("EURUSD=X")
+                tipo_cambio = eurusd.info.get('regularMarketPrice', 1)
+                info = ticker.info
+                data = {
+                    'precio': round(info.get('currentPrice', 0) / tipo_cambio, 2),
+                    'dividend_yield': info.get('dividendYield'),
+                    'payout_ratio': info.get('payoutRatio'),
+                    'per': info.get('trailingPE'),
+                }
+                cache.set(cache_key, data, timeout=60)
+            except Exception:
+                data = {
+                    'precio': None,
+                    'dividend_yield': None,
+                    'payout_ratio': None,
+                    'per': None,
+                }
         return data
 
     def get_precio(self, obj):

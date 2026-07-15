@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.conf import settings
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -126,20 +126,26 @@ class ActivoViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def clasificar_dividendos(self, request):
-        hace_un_año = timezone.now().date() - timedelta(days=365)
-        
-        resultado = self.get_queryset().annotate(
-            total_divs=Sum('dividendo__div_origen', filter=Q(dividendo__fecha_pago__gte=hace_un_año)),
-            clasificacion=Case(
-                When(total_divs__gte=100, then=Value('Excelente')),
-                When(total_divs__gte=50, then=Value('Bueno')),
-                When(total_divs__gt=0, then=Value('Bajo')),
-                default=Value('Sin dividendos'),
-                output_field=CharField()
+        try:
+            hace_un_año = timezone.now().date() - timedelta(days=365)
+            
+            resultado = self.get_queryset().annotate(
+                total_divs=Sum('dividendo__div_origen', filter=Q(dividendo__fecha_pago__gte=hace_un_año)),
+                clasificacion=Case(
+                    When(total_divs__gte=100, then=Value('Excelente')),
+                    When(total_divs__gte=50, then=Value('Bueno')),
+                    When(total_divs__gt=0, then=Value('Bajo')),
+                    default=Value('Sin dividendos'),
+                    output_field=CharField()
+                )
+            ).values('ticker', 'nombre', 'total_divs', 'clasificacion')
+            
+            return Response(list(resultado))
+        except Exception as e:
+            return Response(
+                {"error": f"Error al clasificar dividendos: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        ).values('ticker', 'nombre', 'total_divs', 'clasificacion')
-        
-        return Response(list(resultado))
     
 
     @action(detail=False, methods=['get'])
