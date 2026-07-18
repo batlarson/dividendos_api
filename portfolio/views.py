@@ -163,8 +163,15 @@ class ActivoViewSet(viewsets.ModelViewSet):
             ultima_fecha=Subquery(ultima_fecha)
         ).values('ticker', 'nombre', 'ultimo_div', 'ultima_fecha')
 
-        return Response(list(resultado))        
+        return Response(list(resultado))       
+
+    @action(detail=False, methods=['get'])
+    def act_mas_compras(self, request):
+        resultado = self.get_queryset().annotate(
+            num_compras=Count('compra')
+        ).order_by('-num_compras').values('ticker', 'nombre', 'num_compras')[:3]
         
+        return Response(list(resultado))
 
 
 class CompraViewSet(viewsets.ModelViewSet):
