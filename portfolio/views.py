@@ -172,6 +172,19 @@ class ActivoViewSet(viewsets.ModelViewSet):
         ).order_by('-num_compras').values('ticker', 'nombre', 'num_compras')[:3]
         
         return Response(list(resultado))
+    
+    @action(detail=False, methods=['get'])
+    def total_div_act(self,request):
+        ultima_fecha = Dividendo.objects.filter(
+            activo = OuterRef('pk')
+        ).order_by('-fecha_pago').values('fecha_pago')[:1]
+
+        resultado = self.get_queryset().annotate(
+            ultima_fecha=Subquery(ultima_fecha),
+            total_divs=Sum('dividendo__div_origen')
+        ).values('ticker', 'nombre', 'total_divs', 'ultima_fecha')
+
+        return Response(list(resultado)) 
 
 
 class CompraViewSet(viewsets.ModelViewSet):
