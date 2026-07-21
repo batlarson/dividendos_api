@@ -185,6 +185,14 @@ class ActivoViewSet(viewsets.ModelViewSet):
         ).values('ticker', 'nombre', 'total_divs', 'ultima_fecha')
 
         return Response(list(resultado)) 
+    
+    @action(detail=False, methods=['get'])
+    def act_mas_div(self,request):
+        resultado = self.get_queryset().annotate(
+            total_divs=Sum('dividendo__div_origen')
+        ).values('ticker', 'total_divs').order_by('-total_divs')[:1]
+
+        return Response(list(resultado))
 
 
 class CompraViewSet(viewsets.ModelViewSet):
