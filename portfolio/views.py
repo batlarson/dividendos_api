@@ -193,6 +193,16 @@ class ActivoViewSet(viewsets.ModelViewSet):
         ).values('ticker', 'total_divs').order_by('-total_divs')[:1]
 
         return Response(list(resultado))
+    
+    @action(detail=False, methods=['get'])
+    def mensuales(self,request):
+        meses = request.query_params.get('meses', '6')
+        tiempo = timezone.now().date() - timedelta(days=int(meses) * 30)
+        resultado = self.get_queryset().annotate(
+            meses_con_div=Count(TruncMonth('dividendo__fecha_pago'), filter=Q(dividendo__fecha_pago__gte=tiempo), distinct=True)
+        ).filter(meses_con_div__gte=int(meses)).values('ticker', 'nombre', 'meses_con_div')
+    
+        return Response(list(resultado))
 
 
 class CompraViewSet(viewsets.ModelViewSet):
