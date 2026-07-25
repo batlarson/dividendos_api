@@ -204,6 +204,12 @@ class ActivoViewSet(viewsets.ModelViewSet):
     
         return Response(list(resultado))
 
+    @action(detail=False, methods=['get'])
+    def peor_mes_divs(self,request):
+        resultado = self.get_queryset().annotate(
+            month=TruncMonth('dividendo__fecha_pago')).values('month').annotate(total = Sum('dividendo__div_origen')).order_by('total')[:1]
+
+        return Response(list(resultado))
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
