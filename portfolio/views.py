@@ -211,6 +211,28 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
         return Response(list(resultado))
 
+    @action(detail=False, methods=['get'])
+    def comparacion_dividendos(self,request):
+        hace_1_año = timezone.now().date() - timedelta(days=365)
+        hace_2_años = timezone.now().date() - timedelta(days=730)
+
+        resultado = self.get_queryset().aggregate(
+            este_año=Sum('dividendo__div_origen', filter=Q(dividendo__fecha_pago__gte=hace_1_año)),
+            año_anterior=Sum('dividendo__div_origen', filter=Q(dividendo__fecha_pago__gte=hace_2_años, dividendo__fecha_pago__lt=hace_1_año))
+        )
+
+        este = resultado['este_año'] or 0
+        anterior = resultado['año_anterior'] or 0
+        diferencia = este - anterior
+
+        return Response({
+            'este_año': este,
+            'año_anterior': anterior,
+            'diferencia': diferencia,
+            'tendencia': 'subida' if diferencia > 0 else 'bajada' if diferencia < 0 else 'igual'
+        })
+
+
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
     permission_classes = [IsAuthenticated]
