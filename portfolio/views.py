@@ -40,7 +40,7 @@ class ActivoViewSet(viewsets.ModelViewSet):
         total_invertido = (Compra.objects.filter(
             activo__usuario = request.user,
         ).aggregate(
-            total_precio=Sum(F('precio')* F('cantidad'))
+            total_precio=Sum(F('precio') * F('cantidad') * F('cambio_divisa'))
         ))
         dividendos_anuales = (Dividendo.objects.filter(
             activo__usuario = request.user,
@@ -54,7 +54,7 @@ class ActivoViewSet(viewsets.ModelViewSet):
             yoc_global = None
         return Response({
             'total_activos': total_activos,
-            'total_invertido': total_invertido['total_precio'],
+            'total_invertido_eur': total_invertido['total_precio'],
             'dividendos_anuales': dividendos_anuales['total_div'],
             'yoc_global': yoc_global
         })
@@ -76,28 +76,29 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def top_divs_activos(self, request):
-        resultado = (Dividendo.objects.values('activo', 'activo__ticker').annotate(
-            total_div = Sum('div_origen')           
-        ).order_by('-total_div')[:3])
+        resultado = self.get_queryset().annotate(
+            total_div=Sum('dividendo__div_origen')
+        ).order_by('-total_div').values('ticker', 'nombre', 'total_div')[:3]
         return Response(list(resultado))
         
     @action(detail=False, methods=['get'])    
     def full_divs_gt(self, request):
         umbral = request.query_params.get('umbral', 100)
-        resultado = (Dividendo.objects
-            .values('activo__ticker')     
-            .annotate(total=Sum('div_origen')) 
-            .filter(total__gte=umbral)    
-            .order_by('-total'))
+        resultado = self.get_queryset().annotate(
+            total=Sum('dividendo__div_origen')
+        ).filter(total__gte=umbral).order_by('-total').values('ticker', 'nombre', 'total')
+
         return Response(list(resultado))
 
     @action(detail=False, methods=['get']) 
     def mejor_mes_divs(self, request):
-        resultado = (Dividendo.objects
-            .annotate(month=TruncMonth('fecha_pago'))
-            .values('month')
-            .annotate(total = Sum('div_origen'))
-            .order_by('-total')[:1])
+        resultado = Dividendo.objects.filter(
+            activo__usuario=request.user
+        ).annotate(
+            month=TruncMonth('fecha_pago')
+        ).values('month').annotate(
+            total=Sum('div_origen')
+        ).order_by('-total')[:1]
         return Response(list(resultado))
     
     @action(detail=False, methods=['get'])
