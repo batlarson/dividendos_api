@@ -34,7 +34,7 @@ class ActivoViewSet(viewsets.ModelViewSet):
         serializer.save(usuario=self.request.user)
 
     @action(detail=False, methods=['get'])
-    def resumen(self, request):
+    def resumen_año(self, request):
         hace_un_año = timezone.now().date() - timedelta(days=365)
         total_activos = self.get_queryset().count()
         total_invertido = (Compra.objects.filter(
@@ -57,6 +57,28 @@ class ActivoViewSet(viewsets.ModelViewSet):
             'total_invertido_eur': total_invertido['total_precio'],
             'dividendos_anuales': dividendos_anuales['total_div'],
             'yoc_global': yoc_global
+        })
+
+    @action(detail=True, methods=['get'])
+    def resumen_año_individual(self, request):
+        hace_un_año = timezone.now().date() - timedelta(days=365)
+        activo = self.get_object()
+        total_invertido = Compra.objects.filter(activo__usuario = request.user, activo=activo).aggregate(
+            total_precio=Sum(F('precio') * F('cantidad') * F('cambio_divisa'))
+        )
+        dividendos_anuales = Dividendo.objects.filter(activo__usuario = request.user, activo=activo, fecha_pago__gte = hace_un_año).aggregate(
+            total_div=Sum('div_origen')
+        )
+
+        if dividendos_anuales['total_div'] and total_invertido['total_precio']:
+            yoc = dividendos_anuales['total_div'] / total_invertido['total_precio'] * 100
+        else:
+            yoc = None
+        return Response({
+            'ticker': activo.ticker,
+            'total_invertido_eur': total_invertido['total_precio'],
+            'dividendos_anuales': dividendos_anuales['total_div'],
+            'yoc': yoc
         })
     
     @action(detail=False, methods=['get'])
