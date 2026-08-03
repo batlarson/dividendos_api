@@ -1,10 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+
+
+class ActivoManager(models.Manager):
+    def con_dividendos_recientes(self):
+        hace_un_año = timezone.now().date() - timedelta(days=365)
+        return self.filter(dividendo__fecha_pago__gte=hace_un_año).distinct()
+
 
 class Activo(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     nombre = models.CharField(max_length=50)
     ticker = models.CharField(max_length=5)
+    objects = ActivoManager()
 
     def __str__(self):
         return self.nombre
