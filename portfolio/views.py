@@ -255,6 +255,33 @@ class ActivoViewSet(viewsets.ModelViewSet):
             'tendencia': 'subida' if diferencia > 0 else 'bajada' if diferencia < 0 else 'igual'
         })
 
+    @action(detail=True, methods=['get'])
+    def crecimiento_divs(self, request):
+        activo = self.get_object()
+        hace_1_año = timezone.now().date() - timedelta(days=365)
+        hace_2_años = timezone.now().date() - timedelta(days=730)
+
+        datos = Dividendo.objects.filter(activo=activo).aggregate(
+            este_año=Sum('div_origen', filter=Q(fecha_pago__gte=hace_1_año)),
+            año_anterior=Sum('div_origen', filter=Q(fecha_pago__gte=hace_2_años, fecha_pago__lt=hace_1_año))
+        )
+
+        este = datos['este_año'] or 0
+        anterior = datos['año_anterior'] or 0
+        if anterior > 0:
+            porcentaje = ((este - anterior) / anterior) * 100
+        else:
+            porcentaje = None
+
+        return Response({
+            'este_año': este,
+            'año_anterior': anterior,
+            'porcentaje': porcentaje,
+            'mensaje': f'El porcentaje es un {porcentaje} diferente respecto al año pasado'
+        })       
+
+
+
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
