@@ -280,7 +280,26 @@ class ActivoViewSet(viewsets.ModelViewSet):
             'mensaje': f'El porcentaje es un {porcentaje} diferente respecto al año pasado'
         })       
 
+    @action(detail=False, methods=['get'])
+    def dividendo_medio_mensual(self,request):
+        hace_1_año = timezone.now().date() - timedelta(days=365)  
 
+        data = Dividendo.objects.filter(activo__usuario=request.user, fecha_pago__gte=hace_1_año).aggregate(
+            meses=Count(TruncMonth('fecha_pago'), distinct=True),
+            total=Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100))
+        )
+
+        if data['meses'] and data['total']:
+            medio = data['total'] / data['meses']
+        else:
+            medio = 0
+
+        return Response({
+            'Meses con dividendos': data['meses'],
+            'Dividendos este año': data['total'],
+            'Media mensual': medio,
+            'mensaje': f'La cartera genera una media de {medio} este año'
+        })   
 
 
 class CompraViewSet(viewsets.ModelViewSet):
