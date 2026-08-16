@@ -301,6 +301,16 @@ class ActivoViewSet(viewsets.ModelViewSet):
             'mensaje': f'La cartera genera una media de {medio} este año'
         })   
 
+    @action(detail=False, methods=['get'])
+    def top_3_meses_divs (self, request):
+        resultado = Dividendo.objects.filter(activo__usuario=request.user).annotate(
+            month=TruncMonth('fecha_pago')).values('month').annotate(
+                total_dividendos=Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100)),
+                count=Count('id')
+            ).order_by('-total_dividendos')[:3]
+
+        return Response(list(resultado))
+
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
