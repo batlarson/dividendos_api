@@ -311,6 +311,20 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
         return Response(list(resultado))
 
+    @action(detail=True, methods=['get'])
+    def historial_mensual(self, request, pk=None):
+        activo = self.get_object()
+
+        data = Dividendo.objects.filter(activo=activo).annotate(
+            meses=TruncMonth('fecha_pago')
+        ).values('meses').annotate(
+            total=Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100)),
+            total_pagos=Count('id')
+        ).order_by('-meses')
+
+        return Response(list(data))
+
+
 
 class CompraViewSet(viewsets.ModelViewSet):
     serializer_class = CompraSerializer
