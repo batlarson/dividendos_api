@@ -60,7 +60,7 @@ class ActivoViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'])
-    def resumen_año_individual(self, request):
+    def resumen_año_individual(self, request, pk=None):
         hace_un_año = timezone.now().date() - timedelta(days=365)
         activo = self.get_object()
         total_invertido = Compra.objects.filter(activo__usuario = request.user, activo=activo).aggregate(
@@ -256,7 +256,7 @@ class ActivoViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'])
-    def crecimiento_divs(self, request):
+    def crecimiento_divs(self, request, pk=None):
         activo = self.get_object()
         hace_1_año = timezone.now().date() - timedelta(days=365)
         hace_2_años = timezone.now().date() - timedelta(days=730)
@@ -324,6 +324,48 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
         return Response(list(data))
 
+    @action(detail=False, methods=['get'])
+    def diversificacion(self, request):
+        total_invertido = Compra.objects.filter(
+            activo__usuario=request.user
+        ).aggregate(
+            total=Sum(F('precio') * F('cantidad') * F('cambio_divisa'))
+        )['total'] or 0
+
+        invertido_por_activo = Compra.objects.filter(
+            activo__usuario=request.user
+        ).values(
+            'activo__ticker'
+        ).annotate(
+            invertido=Sum(F('precio') * F('cantidad') * F('cambio_divisa'))
+        ).order_by('-invertido')
+
+        return Response([
+            {
+                'ticker': activo['activo__ticker'],
+                'invertido': activo['invertido'],
+                'porcentaje': (
+                    activo['invertido'] / total_invertido * 100
+                    if total_invertido else 0
+                )
+            }
+            for activo in invertido_por_activo
+        ])
+
+    @action(detail=True, methods=['get'])
+    def rentabilidad_divs(self,request,pk=None):
+        activo = self.get_object()
+
+        total_invertido = Compra.objects.filter(activo=activo).aggregate(
+            total=Sum(F('precio') * F('cantidad') * F('cambio_divisa'))
+        )['total'] or 0
+
+        total_cobrado = Dividendo.objects.filter(activo=activo).aggregate(
+            total=Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100))
+        )['total'] or 0
+
+        rentabilidad = total_cobrado / total_invertido * 100 if total_invertido else 0
+        return Response({'rentabilidad_divs': rentabilidad})
 
 
 class CompraViewSet(viewsets.ModelViewSet):
