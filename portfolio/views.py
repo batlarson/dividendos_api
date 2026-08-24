@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.decorators import action
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, TruncYear
 from rest_framework.permissions import IsAuthenticated
 from .permissions import EsDuenoDelActivo
 from rest_framework.decorators import api_view
@@ -366,6 +366,33 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
         rentabilidad = total_cobrado / total_invertido * 100 if total_invertido else 0
         return Response({'rentabilidad_divs': rentabilidad})
+
+    @action(detail=True, methods=['get'])
+    def crecimiento_anual_divs(self,request,pk=None):
+        activo = self.get_object()
+
+        datos = Dividendo.objects.filter(activo=activo).annotate(
+            año = TruncYear('fecha_pago')
+        ).values('año').annotate(
+            total = Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100))
+        ).order_by('año')
+
+        resultado = []
+        anterior = None
+        for dato in datos:
+            if anterior and anterior > 0:
+                crecimiento = (dato['total'] - anterior) / anterior * 100
+            else:
+                crecimiento = None
+            resultado.append({
+                'año': dato['año'],
+                'total': dato['total'],
+                'crecimiento': crecimiento
+            })
+            anterior = dato['total']
+
+        return Response(resultado)
+
 
 
 class CompraViewSet(viewsets.ModelViewSet):
