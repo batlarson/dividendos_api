@@ -1,5 +1,6 @@
 from celery import shared_task
 from .models import Dividendo, Historial, Activo
+from django.db import transaction
 
 @shared_task
 def tarea_prueba():
@@ -31,11 +32,12 @@ def revisar_activos_sin_dividendos():
     activos = Activo.objects.exclude(
         dividendo__fecha_pago__gte=hace_6_meses
     )
-    
-    for activo in activos:
-        Historial.objects.create(
-            activo=activo,
-            mensaje=f"ALERTA: {activo.ticker} no ha pagado dividendos en 6 meses"
-        )
+
+    with transaction.atomic():
+        for activo in activos:
+            Historial.objects.create(
+                activo=activo,
+                mensaje=f"ALERTA: {activo.ticker} no ha pagado dividendos en 6 meses"
+            )
     
     return f"Revisados {activos.count()} activos sin dividendos recientes"
