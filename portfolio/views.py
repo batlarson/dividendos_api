@@ -393,6 +393,38 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
         return Response(resultado)
 
+    @action(detail=False, methods=['get'])
+    def comparar_periodos(self,request):
+        desde1 = request.query_params.get('desde1')
+        hasta1 = request.query_params.get('hasta1')
+        desde2 = request.query_params.get('desde2')
+        hasta2 = request.query_params.get('hasta2')
+
+        data1 = Dividendo.objects.filter(
+            activo__usuario=request.user,
+            fecha_pago__gte=desde1,
+            fecha_pago__lte=hasta1
+        ).aggregate(
+            total_dividendos=Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100)),
+            media=Avg(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100)),
+            pagos=Count('id')
+        ) 
+
+        data2 = Dividendo.objects.filter(
+            activo__usuario=request.user,
+            fecha_pago__gte=desde2,
+            fecha_pago__lte=hasta2
+        ).aggregate(
+            total_dividendos=Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100)),
+            media=Avg(Sum(F('div_origen') * F('cambio_nominal') * (1 - F('impuesto') / 100))),
+            pagos=Count('id')
+        ) 
+
+        return Response({
+            'periodo_1': data1,
+            'periodo_2': data2
+        })
+
 
 
 class CompraViewSet(viewsets.ModelViewSet):
