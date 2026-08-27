@@ -20,7 +20,7 @@ class Activo(models.Model):
         return self.nombre
 
 class Compra(models.Model):
-    activo = models.ForeignKey(Activo, on_delete=models.CASCADE) 
+    activo = models.ForeignKey(Activo, on_delete=models.CASCADE, related_name='compras') 
     fecha_compra = models.DateField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad = models.DecimalField(max_digits=15, decimal_places=8)
@@ -30,7 +30,7 @@ class Compra(models.Model):
         return f"{self.activo} - {self.fecha_compra}"
 
 class Dividendo(models.Model):
-    activo = models.ForeignKey(Activo, on_delete=models.CASCADE) 
+    activo = models.ForeignKey(Activo, on_delete=models.CASCADE, related_name='dividendos') 
     fecha_pago = models.DateField()
     div_origen = models.DecimalField(max_digits=20, decimal_places=2)
     cambio_nominal = models.DecimalField(max_digits=15, decimal_places=8)
@@ -43,7 +43,7 @@ class Dividendo(models.Model):
         return round(self.div_origen * self.cambio_nominal * (1 - self.impuesto / 100),4)
     
 class Historial(models.Model):
-    activo = models.ForeignKey(Activo, on_delete=models.CASCADE)
+    activo = models.ForeignKey(Activo, on_delete=models.CASCADE, related_name='historial')
     mensaje = models.CharField(max_length=200)
     fecha = models.DateTimeField(auto_now_add=True)
 
